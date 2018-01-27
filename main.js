@@ -1,11 +1,13 @@
 
 //Animation object that controls animations and can load new ones
-function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse) {
+function Animation(spriteSheet, startX, startY, frameWidth, frameHeight, frameDuration, frames, loop, reverse, widthList, xList) {
     this.spriteSheet = spriteSheet;
     this.startX = startX;
     this.startY = startY;
     this.frameWidth = frameWidth;
     this.frameDuration = frameDuration;
+    this.widthList = widthList;
+    this.xList = xList;
     this.frameHeight = frameHeight;
     this.frames = frames;
     this.totalTime = frameDuration * frames;
@@ -39,12 +41,23 @@ Animation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
     var locX = x;
     var locY = y;
     var offset = vindex === 0 ? this.startX : 0;
-    ctx.drawImage(this.spriteSheet,
-                  index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
-                  this.frameWidth, this.frameHeight,
-                  locX, locY,
-                  this.frameWidth * scaleBy,
-                  this.frameHeight * scaleBy);
+
+    if (this.widthList != null) {
+      ctx.drawImage(this.spriteSheet,
+                    index * this.frameWidth + offset + this.xList[this.currentFrame()], vindex * this.frameHeight + this.startY,  // source from sheet
+                    this.widthList[this.currentFrame()], this.frameHeight,
+                    locX, locY,
+                    this.frameWidth * scaleBy,
+                    this.frameHeight * scaleBy);
+    } else {
+      ctx.drawImage(this.spriteSheet,
+                    index * this.frameWidth + offset, vindex * this.frameHeight + this.startY,  // source from sheet
+                    this.frameWidth, this.frameHeight,
+                    locX, locY,
+                    this.frameWidth * scaleBy,
+                    this.frameHeight * scaleBy);
+    }
+
 }
 
 //Helper functions for Animation
@@ -86,10 +99,17 @@ Background.prototype.draw = function (ctx) {
 //MC object
 function MasterCheif(game) {
 
-  this.runningAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"), 14, 265, 80, 110, .15, 3, true, false);
-  this.shootAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"), 22, 150, 85, 110, .15, 2, true, false);
+  //These are used to offset the x and width positions because the sptire sheet
+  //Isn't perfectly alligned
+  let widthListRunning = [80, 80, 80, 80, 83, 80, 80, 80, 82];
+  let xListRunning = [0, 0, 0, 0, 20, 25, 28, 36, 58];
+
+  let grenadeW = [90, 90, 90, 90, 100];
+  let grenadeX = [-10, -10, -10, -10, 3];
+  this.runningAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"), 14, 265, 80, 110, .1, 9, true, false, widthListRunning, xListRunning);
+  this.shootAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"), 22, 150, 85, 110, .1, 2, true, false);
   this.idleAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"),94, 525, 80, 110, .15, 1, true, false);
-  this.grenadeAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"), 10, 4580, 80, 110, .08, 5, false, false);
+  this.grenadeAnimation = new Animation(ASSET_MANAGER.getAsset("./img/MCSprite.png"), 10, 4580, 80, 110, .1, 5, false, false, grenadeW, grenadeX);
   this.running = false;
   this.shoot = false;
   this.idle = true;
@@ -97,6 +117,7 @@ function MasterCheif(game) {
   this.game = game;
   this.x = 100;
   this.y = 300;
+  this.speed = 160;
   Entity.call(this, game, this.x, this.y);
 }
 
@@ -136,7 +157,7 @@ MasterCheif.prototype.update = function() {
   }
 
   if (this.running) {
-    this.x+=2.5;
+    this.x += this.speed * this.game.clockTick;
   }
 
   if (this.x > 800) {
@@ -152,7 +173,7 @@ MasterCheif.prototype.draw = function(ctx) {
   } else if (this.shoot) {
     this.shootAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
   } else if (this.grenade) {
-    this.grenadeAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
+    this.grenadeAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y - 8, 1.06);
   } else {
     this.idleAnimation.drawFrame(this.game.clockTick, ctx, this.x, this.y);
   }
